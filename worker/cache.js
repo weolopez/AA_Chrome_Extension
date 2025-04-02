@@ -18,7 +18,7 @@ self.addEventListener('connect', (event) => {
         port.addEventListener('message', (messageEvent) => {
             const { type, payload } = messageEvent.data;
 
-            if (type === 'store-message') {
+            if (type === 'store-message' || type === 'user-message') {
                 // Validate LLM message payload structure
                 if (!payload || typeof payload !== 'object' || !payload.role || !payload.content) {
                     console.error('Invalid LLM message payload received:', payload);
@@ -36,7 +36,8 @@ self.addEventListener('connect', (event) => {
                     port.postMessage({ type: 'error', payload: 'Failed to store message.' });
                 };
             } else {
-                port.postMessage({ type: 'error', payload: 'Unknown message type.' });
+                // port.postMessage({ type: 'error', payload: 'Unknown message type.' });
+                console.warn('Unknown message type:', type);
             }
         });
 

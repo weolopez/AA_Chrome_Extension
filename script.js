@@ -1,5 +1,7 @@
-import { sendUserMessage } from './js/userMessageHandler.js';
-import { addWorker } from './js/workerRegistry.js';
+// import { sendUserMessage } from './js/userMessageHandler.js';
+import { WorkerRegistry } from './js/workerRegistry.js';
+
+const worker_registry = new WorkerRegistry();
 
 // Responsive-list related code.
 const list = document.getElementById('myList');
@@ -104,19 +106,12 @@ chat.addEventListener('chat-message', (e) => {
         return;
     }
 
-    const response = sendUserMessage(message);
+    const response = worker_registry.sendUserMessage(message);
     // chat.addMessage(response, "received"); 
 });
 
 
 //TODO make UI for this configuration
 // use workerRegistry to add messageCacheWorker
-addWorker({
-    name: 'messageCacheWorker',
-    type: 'SharedWorker',
-    uri: './js/messageCacheWorker.js'
-}).then(() => {
-    console.log('Worker added to registry.');
-}).catch((error) => {
-    console.error('Error adding worker to registry:', error);
-});
+worker_registry.addWorker("echo")
+worker_registry.addWorker("cache")
