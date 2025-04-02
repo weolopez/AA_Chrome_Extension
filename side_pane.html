@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sliding Panel Demo</title>
+    <style>
+        /* Optional global styles */
+        body {
+            margin: 0;
+            font-family: sans-serif;
+        }
+        kbd {
+            background: #eee;
+            border-radius: 3px;
+            padding: 2px 4px;
+            font-size: 0.9em;
+        }
+        chat-window {
+            width: 50vw;
+        }
+        responsive-list {
+            width: 50vw;
+        }
+    </style>
+</head>
+<body>
+    <main>
+    </main>
+    
+    <sliding-panel direction="right" animation-duration="0.8s" easing="cubic-bezier(0.68, -0.55, 0.27, 1.55)"
+                    background-color="rgba(50, 50, 50, 0.9)">
+        <toolbar-component id="myToolbar"></toolbar-component>
+        <!-- Place the responsive list component -->
+        <responsive-list id="myList"></responsive-list>
+        <!-- Include the web component script -->
+        <script src="/wc/responsive-list.js"></script>
+    </sliding-panel>
+    
+    <chat-window header-text="Chat" send-button-text="Send Message" placeholder="Write your message..."
+                 animation-duration="0.4s" theme="dark" opened chat-height="100vh" chat-width="100vw" chat-bottom="1px" chat-right="0px">
+    </chat-window>
+    
+    <!-- The sliding-panel element uses attributes to set its options -->
+    <sliding-panel direction="bottom" animation-duration="0.8s" easing="cubic-bezier(0.68, -0.55, 0.27, 1.55)"
+                    background-color="rgba(50, 50, 50, 0.9)">
+        <!-- Place the custom toolbar element in your HTML -->
+        <toolbar-component id="myToolbar"></toolbar-component>
+        <wc-codemirror></wc-codemirror>
+    </sliding-panel>
+    
+    <!-- Include external web component scripts -->
+    <script src="/wc/sliding-panel.js"></script>
+    <script src="/wc/chat-component.js"></script>
+    <script type="module" src="/js/codemirror.js"></script>
+    <script src="/wc/toolbar-component.js"></script>
+    <script type="module" src="/js/userMessageHandler.js"></script>
+    
+    <!-- Moved inline JavaScript -->
+    <script src="script.js" type="module"></script>
+</body>
+</html>

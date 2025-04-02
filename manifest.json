@@ -1,0 +1,45 @@
+{
+  "name": "Auto Architect",
+  "description": "Auto Architect",
+  "version": "1.0",
+  "manifest_version": 3,
+  "icons": {
+    "16": "favicon.png",
+    "32": "favicon.png",
+    "48": "favicon.png",
+    "128": "favicon.png"
+  },
+  "permissions": [
+    "identity",
+    "activeTab",
+    "tabs",
+    "scripting",
+    "activeTab",
+    "storage",
+    "notifications",
+    "contextMenus",
+    "clipboardWrite",
+    "clipboardRead",
+    "sidePanel",
+    "nativeMessaging"
+  ],
+  "action": {
+    "default_title": "Click to open panel"
+  },
+  "side_panel": {
+    "default_path": "side_pane.html"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  }
+}
+
+//TODO
+// Your extension (origin: chrome-extension://...) wants to access https://api.example.com/data.
+// The browser will check if api.example.com has allowed requests from your extension's origin.
+// If api.example.com sends the Access-Control-Allow-Origin: chrome-extension://... header, the request is allowed; otherwise, it's blocked. 
+// "host_permissions": [
+//   "https://www.example.com/*", // Access to all URLs on example.com
+//   "https://api.example.com/*"   // Access to all URLs on api.example.com
+// ]
