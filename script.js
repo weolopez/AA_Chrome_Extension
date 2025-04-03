@@ -2,6 +2,7 @@
 import { WorkerRegistry } from './js/workerRegistry.js';
 
 const worker_registry = new WorkerRegistry();
+worker_registry.initRouter();
 
 // Responsive-list related code.
 const list = document.getElementById('myList');
@@ -85,7 +86,7 @@ document.addEventListener('agent-message', (e) => {
     const message = e.detail;
 
     // Validate the message object
-    if (!message || typeof message !== 'object' ) {
+    if (!message || typeof message !== 'object') {
         console.error('Invalid message structure:', message);
         chat.addMessage({ content: 'Error: Invalid message format.' }, "received");
         return;
@@ -112,7 +113,6 @@ chat.addEventListener('chat-message', (e) => {
 
 
 //TODO make UI for this configuration
-// use workerRegistry to add workers
-worker_registry.addWorker("echo")
-worker_registry.addWorker("cache")
-worker_registry.addWorker("mcp")
+// use workerRegistry to add messageCacheWorker
+// worker_registry.addWorker("echo")
+// worker_registry.addWorker("cache")
