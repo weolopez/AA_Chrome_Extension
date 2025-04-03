@@ -114,5 +114,5 @@ chat.addEventListener('chat-message', (e) => {
 
 //TODO make UI for this configuration
 // use workerRegistry to add messageCacheWorker
-worker_registry.addWorker("echo")
-worker_registry.addWorker("cache")
+// worker_registry.addWorker("echo")
+// worker_registry.addWorker("cache")
