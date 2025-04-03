@@ -2,7 +2,9 @@ export class WorkerRegistry {
     constructor() {
         this.dbName = 'WorkerRegistryDB';
         this.storeName = 'worker_registry';
+    }
 
+    initRouter() {
         this.router = this.initWorker('router');
         // Event listener for messages from the worker
         this.router.addEventListener('message', (event) => {
@@ -11,11 +13,22 @@ export class WorkerRegistry {
             });
             document.dispatchEvent(agentMessageEvent);
         });
+
+        this.getAllWorkers().then((workers) => {
+            //if echo,cache and openai are missing add them
+            const missingWorkers = ['echo', 'cache', 'openai'].filter(worker => !workers.some(w => w.name === worker));
+            missingWorkers.forEach(worker => workers.push({ name: worker }));
+            workers.forEach(worker => {
+                if (worker.name !== 'router') {
+                    this.addWorker(worker.name, worker.config);
+                }
+            });
+        });
     }
 
     initWorker(workerName) {        
         const workerUrl = new URL(`../worker/${workerName}.js`, import.meta.url);
-        const worker = new SharedWorker(workerUrl, { name: workerName});
+        const worker = new SharedWorker(workerUrl, { name: workerName, type: 'module' });
         worker.port.start();
         return worker.port;
     }
@@ -41,17 +54,35 @@ export class WorkerRegistry {
 
 
     // Add a new worker to the registry
-    async addWorker(worker) {
+    async addWorker(worker, config) {
         const db = await this.initDB();
         const transaction = db.transaction(this.storeName, 'readwrite');
         const store = transaction.objectStore(this.storeName);
-        store.put({name:worker});
+        store.put({ name: worker });
 
         const port = this.initWorker(worker);
-        const payload =  {
-                name: worker
-            }
+        port.postMessage({ type: 'set-config', payload: config });
+        const payload = {
+            name: worker
+        };
         this.router.postMessage({ type: 'register', payload }, [port]);
+    }
+
+    // Update a worker's configuration in the registry
+    async updateWorkerConfig(workerName, config) {
+        const db = await this.initDB();
+        const transaction = db.transaction(this.storeName, 'readwrite');
+        const store = transaction.objectStore(this.storeName);
+
+        const request = store.index('name').get(workerName);
+        request.onsuccess = () => {
+            const workerRecord = request.result || { name: workerName };
+            workerRecord.config = { ...workerRecord.config, ...config };
+            store.put(workerRecord);
+        };
+        request.onerror = () => {
+            console.error(`Failed to update config for worker ${workerName}:`, request.error);
+        };
     }
 
     // Retrieve all workers from the registry

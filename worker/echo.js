@@ -1,29 +1,31 @@
 // SharedWorker that echoes messages back with a prefix
-self.addEventListener('connect', (event) => {
-    const port = event.ports[0];
+import BaseWorker from './base.js';
 
-    respond = (messageEvent, callback) => {
-        const { type, payload } = messageEvent.data;
-
-        if (type === 'user-message') {
-            console.log('Received user message:', payload);
-            // Validate LLM message payload structure
-            if (!payload || typeof payload !== 'object' || !payload.role || !payload.content) {
-                console.error('Invalid LLM message payload received:', payload);
-            }
+export class EchoWorker extends BaseWorker {
+    constructor() {
+        super();
+        this.config.user = "Echo";
+        this.config.content = "Echo, {userContent}, from {user} as {role}";
         }
-        callback(payload)
+
+        handleCustomMessage(type, payload, port) {
+        if (type === 'user-message') {
+            // Replace the placeholder with the actual content from the payload
+            let content = this.config.content
+                .replace("{userContent}", payload.content)
+                .replace("{user}", this.config.user)
+                .replace("{role}", this.config.role);
+            const responsePayload = {
+            user: this.config.user,
+            role: this.config.role,
+            content 
+            };
+            port.postMessage({ type: 'worker-message', payload: responsePayload });
+        } else {
+            super.handleCustomMessage(type, payload, port);
+        }
     }
+}
 
-
-    port.addEventListener('message', (messageEvent) => {
-        respond(messageEvent, (payload) => {
-            payload.content = `Echo, ${payload.content}`
-            payload.user = "Echo Agent"
-            payload.role = "agent"
-            port.postMessage({ type: 'worker-message', payload  });
-        });
-    });
-
-    port.start();
-});
+const echoWorker = new EchoWorker();
+onconnect = (event) => echoWorker.onConnect(event);
