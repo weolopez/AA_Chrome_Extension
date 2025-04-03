@@ -111,50 +111,8 @@ chat.addEventListener('chat-message', (e) => {
     // chat.addMessage(response, "received"); 
 });
 
- // Fetch request to the external API
- fetch("https://litellm.weolopez.com/chat/completions", {
-    headers: {
-        "accept": "application/json",
-        "accept-language": "en-US,en;q=0.9,es;q=0.8,es-ES;q=0.7,es-US;q=0.6",
-        "authorization": "Bearer sk-51MK8oRHrynbJxKW2d5WAQ",
-        "cache-control": "no-cache",
-        "content-type": "application/json",
-        "pragma": "no-cache",
-        "sec-ch-ua": "\"Chromium\";v=\"134\", \"Not:A-Brand\";v=\"24\", \"Google Chrome\";v=\"134\"",
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": "\"macOS\"",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-origin",
-        "x-stainless-arch": "unknown",
-        "x-stainless-lang": "js",
-        "x-stainless-os": "Unknown",
-        "x-stainless-package-version": "4.28.0",
-        "x-stainless-runtime": "browser:chrome",
-        "x-stainless-runtime-version": "134.0.0"
-    },
-    referrer: "https://litellm.weolopez.com/ui/?userID=default_user_id&page=llm-playground",
-    referrerPolicy: "strict-origin-when-cross-origin",
-    body: JSON.stringify({
-        model: "gemini",
-        stream: true,
-        messages: [
-            { role: "user", content: "Tell me a joke" }
-        ]
-    }),
-    method: "POST",
-    mode: "cors",
-    credentials: "include"
-})
-.then(response => response.json())
-.then(data => {
-    if (data && data.choices && data.choices[0] && data.choices[0].message) {
-        chat.addMessage({ content: data.choices[0].message.content }, "received");
-    } else {
-        chat.addMessage({ content: 'Error: Invalid response from server.' }, "received");
-    }
-})
-.catch(error => {
-    console.error('Error fetching response:', error);
-    chat.addMessage({ content: 'Error: Unable to fetch response.' }, "received");
-});
+
+//TODO make UI for this configuration
+// use workerRegistry to add messageCacheWorker
+worker_registry.addWorker("echo")
+worker_registry.addWorker("cache")
