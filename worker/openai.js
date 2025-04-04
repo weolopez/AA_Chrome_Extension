@@ -11,37 +11,42 @@ class OpenAIWorker extends BaseWorker {
 
     handleCustomMessage(type, payload, port) {
         if (type === 'user-message') {
-            const { prompt } = payload;
+            const { content } = payload;
 
             if (!this.config.endpoint || !this.config.apiKey || !this.config.model || !payload) {
                 port.postMessage({ type: 'error', payload: 'Missing required parameters for OpenAI API call.' });
                 return;
             }
             const requestBody = {
-                model: this.config.model,
-                messages: [
-                    { role: "system", content: "You are a helpful assistant." }
-                ],
-                stream: false
-            }
-            requestBody.messages.push(payload)
+                contents: [
+                  {
+                    parts: [
+                      {
+                        text: content
+                      }
+                    ]
+                  }
+                ]
+              }
+            // requestBody.messages.push(payload)
             fetch(`${this.config.endpoint}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'api-key': `${this.config.apiKey}`,
-                    'mode': 'no-cors' // no-cors, *cors, same-origin
                 },
                 body: JSON.stringify(requestBody)
             })
-                .then((response) => {
+                .then(async (response) => {
                     if (!response.ok) {
                         throw new Error(`API call failed with status ${response.status}`);
                     }
-                    port.postMessage({ type: 'worker-message', payload: response.json() });
+                    let resp = await response.json();
+                    resp = resp.candidates[0].content.parts[0].text; // Extract the text field
+                    resp = { role: "agent", content: resp }
+                    port.postMessage({ type: 'worker-message', payload: resp });          
                 })
                 .then((data) => {
-                    port.postMessage({ type: 'worker-message', payload: data });
+                    port.postMessage({ type: 'worker-message', payload: { role: "agent", content: data } });
                 })
                 .catch((error) => {
                     port.postMessage({ type: 'error', payload: `Failed to fetch OpenAI API: ${error.message}` });
