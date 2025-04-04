@@ -34,7 +34,7 @@ self.addEventListener('connect', (event) => {
           const responsePayload = {
             content: response,
             user: 'MCP Agent',
-            role: 'agent'
+            role: 'MCP'
           };
           port.postMessage({ type: 'worker-message', payload: responsePayload });
         });
@@ -130,7 +130,7 @@ self.addEventListener('connect', (event) => {
       if (payload && payload.content) {
         payload.content = `MCP received: ${payload.content}`;
         payload.user = 'MCP Agent';
-        payload.role = 'agent';
+        payload.role = 'mcp';
       }
       port.postMessage({ type: 'worker-message', payload });
     });

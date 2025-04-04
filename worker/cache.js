@@ -28,7 +28,7 @@ class CacheWorker extends BaseWorker {
             port.addEventListener('message', (messageEvent) => {
                 const { type, name, payload } = messageEvent.data;
 
-                if (type === 'store-message' || type === 'user-message') {
+                if (type === 'store-message' || type === 'user-message' || type === 'worker-message') {
                     if (!payload || typeof payload !== 'object' || !payload.role || !payload.content) {
                         console.error('Invalid LLM message payload received:', payload);
                         port.postMessage({ type: 'error', payload: 'Invalid LLM message payload structure.' });

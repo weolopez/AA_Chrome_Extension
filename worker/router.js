@@ -55,7 +55,7 @@ class WorkerRouter {
         } else if (type === 'connect') {
             console.warn('already connected');
         } else {
-            console.warn('Unknown message type:', type);
+            console.warn('Unknown message type:', type, payload);
         }
     }
 }

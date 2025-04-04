@@ -29,7 +29,7 @@ class BaseWorker {
 
 
     handleCustomMessage(type, payload, port) {
-        port.postMessage({ type: 'error', payload: 'Unknown message type.' });
+        port.postMessage({ type: 'error', payload: 'Base unknown message type.' });
     }
 }
 
