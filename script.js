@@ -111,8 +111,3 @@ chat.addEventListener('chat-message', (e) => {
     // chat.addMessage(response, "received"); 
 });
 
-
-//TODO make UI for this configuration
-// use workerRegistry to add messageCacheWorker
-// worker_registry.addWorker("echo")
-// worker_registry.addWorker("cache")
