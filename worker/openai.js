@@ -18,21 +18,21 @@ class OpenAIWorker extends BaseWorker {
                 return;
             }
             const requestBody = {
-                contents: [
-                  {
-                    parts: [
-                      {
-                        text: content
-                      }
-                    ]
-                  }
+                model: this.config.model || "gemini",
+                stream: false,
+                messages: [
+                    {
+                        role: "user",
+                        content: content
+                    }
                 ]
-              }
-            // requestBody.messages.push(payload)
+            };
+
             fetch(`${this.config.endpoint}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'authorization': `Bearer ${this.config.apiKey}`,
                 },
                 body: JSON.stringify(requestBody)
             })
@@ -41,7 +41,7 @@ class OpenAIWorker extends BaseWorker {
                         throw new Error(`API call failed with status ${response.status}`);
                     }
                     let resp = await response.json();
-                    resp = resp.candidates[0].content.parts[0].text; // Extract the text field
+                    resp = resp.choices[0].message.content; // Extract the content field from the first choice
                     resp = { role: "gemini", content: resp }
                     port.postMessage({ type: 'worker-message', payload: resp });          
                 })

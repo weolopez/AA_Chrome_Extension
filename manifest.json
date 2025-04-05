@@ -30,7 +30,7 @@
     "service_worker": "background.js",
     "type": "module"
   },
-  "host_permissions": ["https://cabalbot-apim.azure-api.net/*"],
+  "host_permissions": ["https://cabalbot-apim.azure-api.net/*","https://litellm.weolopez.com/*"],
   "oauth2": {
     "client_id": "693302813262-6lqrnb7ubmkoa3278ogcia201cuapum5.apps.googleusercontent.com",
     "scopes": [
