@@ -12,16 +12,13 @@
   "permissions": [
     "identity",
     "activeTab",
-    "tabs",
     "scripting",
-    "activeTab",
     "storage",
     "notifications",
     "contextMenus",
     "clipboardWrite",
     "clipboardRead",
-    "sidePanel",
-    "nativeMessaging"
+    "sidePanel"
   ],
   "action": {
     "default_title": "Click to open panel"
