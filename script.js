@@ -1,3 +1,44 @@
+// Function to request user info and update UI
+function displayUserInfo() {
+    const userInfoDisplay = document.getElementById('user-info-display');
+    if (!userInfoDisplay) {
+        console.error("User info display element not found.");
+        return;
+    }
+
+    chrome.runtime.sendMessage({ type: 'getUserInfo' }, (response) => {
+        if (chrome.runtime.lastError) {
+            console.error("Error sending message:", chrome.runtime.lastError.message);
+            userInfoDisplay.textContent = 'Error fetching user info.';
+            return;
+        }
+
+        if (response && response.success && response.data) {
+            console.log("Received user info:", response.data);
+            // Display user's name. You might want to add the picture too.
+            userInfoDisplay.textContent = `Welcome, ${response.data.name || response.data.email}!`;
+            // Example: Add profile picture if available
+            // if (response.data.picture) {
+            //     const img = document.createElement('img');
+            //     img.src = response.data.picture;
+            //     img.style.height = '24px';
+            //     img.style.borderRadius = '50%';
+            //     img.style.marginLeft = '8px';
+            //     img.style.verticalAlign = 'middle';
+            //     userInfoDisplay.appendChild(img);
+            // }
+        } else {
+            console.error("Failed to get user info:", response ? response.error : 'No response');
+            userInfoDisplay.textContent = 'Could not retrieve user information. Please sign in.';
+            // Optionally, add a sign-in button here or prompt the user
+        }
+    });
+}
+
+// Call the function when the script loads
+displayUserInfo();
+
+
 // import { sendUserMessage } from './js/userMessageHandler.js';
 import { WorkerRegistry } from './js/workerRegistry.js';
 
@@ -108,6 +149,7 @@ chat.addEventListener('chat-message', (e) => {
     }
 
     const response = worker_registry.sendUserMessage(message);
-    // chat.addMessage(response, "received"); 
-});
-
+    // chat.addMessage(response, "received");
+   });
+   
+   
