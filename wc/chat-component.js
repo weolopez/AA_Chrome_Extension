@@ -415,6 +415,9 @@ class ChatWindow extends HTMLElement {
     _appendMessage(message, type) {
       const messageEl = document.createElement('div');
       messageEl.className = `chat-message ${type}`;
+      if (typeof message === 'object') {
+        message = JSON.stringify(message);
+      }
       messageEl.textContent = message;
       this._messagesContainer.appendChild(messageEl);
       // Scroll to the bottom.

@@ -16,7 +16,9 @@ export class WorkerRegistry {
 
         this.getAllWorkers().then((workers) => {
             //if echo,cache and openai are missing add them
-            const missingWorkers = ['echo', 'cache', 'openai'].filter(worker => !workers.some(w => w.name === worker));
+            // Define the list of essential workers, including the new flow orchestrator
+            const essentialWorkers = [ 'echo', 'openai', 'memory', 'QnAFlowWorker'];
+            const missingWorkers = essentialWorkers.filter(workerName => !workers.some(w => w.name === workerName));
             missingWorkers.forEach(worker => workers.push({ name: worker }));
             workers.forEach(worker => {
                 if (worker.name !== 'router') {
@@ -24,12 +26,39 @@ export class WorkerRegistry {
                 }
             });
         });
-    }
+    } 
 
-    initWorker(workerName) {        
-        const workerUrl = new URL(`../worker/${workerName}.js`, import.meta.url);
-        const worker = new SharedWorker(workerUrl, { name: workerName, type: 'module' });
-        worker.port.start();
+    initWorker(workerName) {
+        try {
+            const workerUrl = new URL(`../worker/${workerName}.js`, import.meta.url);
+            console.log(`WorkerRegistry: Initializing SharedWorker for ${workerName} at ${workerUrl.href}`);
+
+            const worker = new SharedWorker(workerUrl, { name: workerName, type: 'module' });
+
+            // *** Add error handler directly to the worker object ***
+            // This catches errors during script fetching, parsing, or initial execution.
+            worker.onerror = (event) => {
+                console.error(`WorkerRegistry: Error loading SharedWorker '${workerName}'.`, event);
+                // Log the specific error if available (might be limited)
+                if (event instanceof ErrorEvent) {
+                    console.error(`   Message: ${event.message}`);
+                    console.error(`   Filename: ${event.filename}`);
+                    console.error(`   Lineno: ${event.lineno}`);
+                    // Note: Detailed error might not always be available due to security/CORS.
+                }
+                // You could potentially dispatch an event to the UI here to indicate failure.
+                // document.dispatchEvent(new CustomEvent('worker-error', { detail: { name: workerName, error: event } }));
+            };
+
+            // Start the port communication channel
+            worker.port.start();
+
+            console.log(`WorkerRegistry: Port started for ${workerName}.`);
+            return worker.port; // Return the port for communication
+        } catch (error) {
+            console.error(`Failed to initialize worker "${workerName}":`, error);
+            throw new Error(`Worker "${workerName}" could not be started. Ensure the file exists and is valid.`);
+        }
         return worker.port;
     }
 
@@ -61,7 +90,9 @@ export class WorkerRegistry {
         store.put({ name: worker });
 
         const port = this.initWorker(worker);
-        port.postMessage({ type: 'set-config', payload: config });
+        if (config) {
+            port.postMessage({ type: 'set-config', payload: config });
+        }
         const payload = {
             name: worker
         };
@@ -100,7 +131,7 @@ export class WorkerRegistry {
 
     // Function to send user messages to the worker
     sendUserMessage(message) {
-        if (!message || typeof message !== 'object' || !message.content) {
+        if (!message || typeof message !== 'object' || !message.payload.content) {
             console.error('Invalid message. Please provide a valid LLM message payload.');
             return;
         }
@@ -110,7 +141,7 @@ export class WorkerRegistry {
             message.name = 'user';
         }
 
-        this.router.postMessage({ type: 'user-message', payload: message });
+        this.router.postMessage(message);
     }
 }
 

@@ -140,6 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // import { sendUserMessage } from './js/userMessageHandler.js';
 import { WorkerRegistry } from './js/workerRegistry.js';
+import { markdownToHtml } from './js/markdown-formatter.js'; // Import the markdown formatter
 
 const worker_registry = new WorkerRegistry();
 worker_registry.initRouter();
@@ -222,43 +223,143 @@ chat.addEventListener('chat-closed', () => {
 });
 
 document.addEventListener('agent-message', (e) => {
-    console.log('Agent message received:', e.detail);
-    const message = e.detail;
+    const message = e.detail; // This is the data relayed from the worker via the router
+    // Destructure OMF fields (name is the original sender worker)
+    const { type, name: senderName, payload, requestId, error: messageError } = message;
 
-    // Validate the message object
-    if (!message || typeof message !== 'object') {
-        console.error('Invalid message structure:', message);
-        chat.addMessage({ content: 'Error: Invalid message format.' }, "received");
+    console.log(`Agent message received from '${senderName || 'Unknown'}':`, message);
+
+    // Validate the basic message structure
+    if (!type) { // Check for type, as name/payload might be missing in malformed messages
+        console.error('Invalid agent message structure (missing type):', message);
+        if (chat && typeof chat.addMessage === 'function') {
+            chat.addMessage({ content: `Error: Received invalid message structure from agent '${senderName || 'Unknown'}' (missing type).` }, "error");
+        }
         return;
     }
 
-    chat.addMessage(message.payload.content, "received");
+    // Handle different message types
+    // Handle different message types based on OMF 'type'
+    switch (type) {
+        case 'result':
+            // Assuming 'result' type contains the actual message payload to display
+            // Payload structure might vary, adapt as needed
+            if (payload && typeof payload === 'object' && payload.content) {
+                // Format the actual content using the markdown formatter
+                const formattedContent = markdownToHtml(payload.content);
+                // Determine the role for display - use senderName or payload.role
+                // Example: Use 'received' for assistant/system roles, otherwise maybe use senderName?
+                const displayRole = (payload.role === 'assistant' || payload.role === 'system') ? 'received' : (senderName || 'system'); // Adjust logic
+                chat.addMessage({ content: formattedContent }, displayRole);
+            } else {
+                console.warn(`Agent message type "result" from '${senderName || 'Unknown'}' received without valid payload.content:`, message);
+                // Optionally display raw payload or a placeholder
+                 chat.addMessage({ content: `Received result from ${senderName || 'Unknown'}: ${JSON.stringify(payload)}` }, "system");
+            }
+            break;
+        case 'status':
+            // Payload for status might be a string or object
+            console.log(`Agent status update from '${senderName || 'Unknown'}':`, payload, messageError || '');
+            // Optionally display status updates in the chat
+            chat.addMessage( `Status: ${JSON.stringify(message.payload, null, 2)}`);
+                // { content: `Status [${senderName || 'Unknown'}]: ${JSON.stringify(payload)}` }, "system");
+            break;
+        case 'error':
+            // Error payload should ideally contain an 'error' message string
+            const errorContent = messageError || payload?.error || JSON.stringify(payload);
+            console.error(`Agent error from '${senderName || 'Unknown'}': ${errorContent}`, message);
+            if (chat && typeof chat.addMessage === 'function') {
+                 chat.addMessage(`Error from ${senderName}  ${JSON.stringify(message.payload, null, 2)}`);
+            }
+            break;
+        default:
+            if (message.payload.role === 'assistant') {
+                chat.addMessage(message.payload.content, 'received');
+            } else {
+                console.log(`Unhandled agent message type:  ${JSON.stringify(message, null, 2)}`, message);
+                chat.addMessage(`${JSON.stringify(message.payload, null, 2)}`);
+            }
+    }
 });
 
 
 // Original chat listener using WorkerRegistry
-chat.addEventListener('chat-message', (e) => {
+chat.addEventListener('chat-message', async (e) => { // Make listener async for addWorker call
     console.log('User sent message:', e.detail.message);
     const message = e.detail.message;
+    const userRequestId = `user-${crypto.randomUUID()}`;
 
     // Validate the message object
     if (!message || typeof message !== 'object' || !message.content) {
         console.error('Invalid message structure:', message);
-        // Use the 'chat' variable defined earlier (around line 153) if available
         if (chat && typeof chat.addMessage === 'function') {
              chat.addMessage({ content: 'Error: Invalid message format.' }, "error");
         } else {
-             // Fallback if 'chat' is not available or doesn't have the method
              const chatWindow = document.querySelector('chat-window');
              if (chatWindow) chatWindow.addMessage({ content: 'Error: Invalid message format.' }, "error");
         }
         return;
     }
 
-    // Original logic: Send message to WorkerRegistry
-    console.log("Routing message to WorkerRegistry...");
-    const response = worker_registry.sendUserMessage(message);
-    // Handle response from worker_registry if needed (e.g., display it)
+    const messageContent = message.content.trim();
+
+    // Check for slash commands
+    if (messageContent.startsWith('/')) {
+        const parts = messageContent.split(' ');
+        const command = parts[0];
+        const args = parts.slice(1);
+
+        if (command === '/worker' && args[0] === 'add' && args.length === 2) {
+            const workerName = args[1];
+            console.log(`Command received: /worker add ${workerName}`);
+            try {
+                // Provide feedback to the user
+                chat.addMessage({ content: `Attempting to add worker: ${workerName}...` }, "system");
+                // Call the addWorker method
+                // Note: Assumes a corresponding '../worker/${workerName}.js' file exists.
+                await worker_registry.addWorker(workerName); // Pass only name for now
+                chat.addMessage({ content: `Worker '${workerName}' added successfully. Assumes '../worker/${workerName}.js' exists.` }, "system");
+            } catch (error) {
+                console.error(`Failed to add worker '${workerName}':`, error);
+                chat.addMessage({ content: `Error adding worker '${workerName}': ${error.message}` }, "error");
+            }
+        } else if (command === '/config') {
+           
+            // Construct the OMF message
+            const omfMessage = {
+                type: 'user-message',
+                name: 'MainUI', // Identify the sender as the main UI
+                requestId: userRequestId, // Use the generated ID as the base for the chain
+                payload: message // The original message object { role: 'user', content: '...' }
+            };
+
+            // Send the full OMF message to the WorkerRegistry
+            worker_registry.sendUserMessage(omfMessage); 
+
+        } else {
+            // Handle unknown commands or incorrect usage
+            console.warn(`Unknown or invalid command: ${messageContent}`);
+            chat.addMessage({ content: `Unknown or invalid command: ${messageContent}` }, "system");
+        }
+    } else {
+        // Logic for regular user messages (not commands)
+        console.log("Processing regular user message...");
+        // Generate the base user request ID for this entire user interaction.
+        // This ID will be propagated through the worker chain for tracing.
+        console.log(`Generated userRequestId: ${userRequestId}`);
+
+        // Construct the OMF message
+        const omfMessage = {
+            type: 'user-message',
+            name: 'MainUI', // Identify the sender as the main UI
+            requestId: userRequestId, // Use the generated ID as the base for the chain
+            payload: message // The original message object { role: 'user', content: '...' }
+        };
+
+        // Send the full OMF message to the WorkerRegistry
+        worker_registry.sendUserMessage(omfMessage);
+        // Handle response from worker_registry if needed (e.g., display it)
+    }
     // if (response) {
     //    if (chat && typeof chat.addMessage === 'function') chat.addMessage(response, "received");
     // }
