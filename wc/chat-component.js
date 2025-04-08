@@ -1,30 +1,30 @@
 // chat-component.js
 
 class ChatWindow extends HTMLElement {
-    constructor() {
-      super();
-      // Attach an open Shadow DOM for encapsulation.
-      this.attachShadow({ mode: 'open' });
-  
-      // Get attribute values or use defaults.
-      this._headerText = this.getAttribute('header-text') || 'Chat';
-      this._sendButtonText = this.getAttribute('send-button-text') || 'Send';
-      this._placeholder = this.getAttribute('placeholder') || 'Type your message...';
-      this._animationDuration = this.getAttribute('animation-duration') || '0.3s';
-      this._theme = this.getAttribute('theme') || 'light';
-  
-      // New customizable layout attributes.
-      this._chatWidth = this.getAttribute('chat-width') || '300px';
-      this._chatHeight = this.getAttribute('chat-height') || '100vh'; // optional
-      this._chatBottom = this.getAttribute('chat-bottom') || '20px';
-      this._chatRight = this.getAttribute('chat-right') || '20px';
-  
-      // The "opened" attribute controls if the chat is open.
-      // If the attribute is present, the chat is open; otherwise, it’s closed.
-      this._isOpen = this.hasAttribute('opened');
-  
-      // Set up the component’s inner HTML.
-      this.shadowRoot.innerHTML = `
+  constructor() {
+    super();
+    // Attach an open Shadow DOM for encapsulation.
+    this.attachShadow({ mode: 'open' });
+
+    // Get attribute values or use defaults.
+    this._headerText = this.getAttribute('header-text') || 'Chat';
+    this._sendButtonText = this.getAttribute('send-button-text') || 'Send';
+    this._placeholder = this.getAttribute('placeholder') || 'Type your message...';
+    this._animationDuration = this.getAttribute('animation-duration') || '0.3s';
+    this._theme = this.getAttribute('theme') || 'light';
+
+    // New customizable layout attributes.
+    this._chatWidth = this.getAttribute('chat-width') || '300px';
+    this._chatHeight = this.getAttribute('chat-height') || '100vh'; // optional
+    this._chatBottom = this.getAttribute('chat-bottom') || '20px';
+    this._chatRight = this.getAttribute('chat-right') || '20px';
+
+    // The "opened" attribute controls if the chat is open.
+    // If the attribute is present, the chat is open; otherwise, it’s closed.
+    this._isOpen = this.hasAttribute('opened');
+
+    // Set up the component’s inner HTML.
+    this.shadowRoot.innerHTML = `
         <style>
           :host {
             /* Use customizable dimensions and positioning from attributes */
@@ -154,105 +154,111 @@ class ChatWindow extends HTMLElement {
           </div>
         </div>
       `;
-  
-      // Cache references to inner elements.
-      this._container = this.shadowRoot.querySelector('.chat-container');
-      this._header = this.shadowRoot.querySelector('.chat-header');
-      this._closeButton = this.shadowRoot.querySelector('.chat-close');
-      this._messagesContainer = this.shadowRoot.querySelector('.chat-messages');
-      this._inputField = this.shadowRoot.querySelector('.chat-input input');
-      this._sendButton = this.shadowRoot.querySelector('.chat-input button');
-  
-      // Bind methods.
-      this._toggleChat = this._toggleChat.bind(this);
-      this._sendMessage = this._sendMessage.bind(this);
-    }
-  
-    static get observedAttributes() {
-      return [
-        'header-text',
-        'send-button-text',
-        'placeholder',
-        'animation-duration',
-        'theme',
-        'opened',
-        'chat-width',
-        'chat-height',
-        'chat-bottom',
-        'chat-right'
-      ];
-    }
-  
-    connectedCallback() {
-      //this._header.addEventListener('click', this._toggleChat);
-      this._closeButton.addEventListener('click', this._toggleChat);
-      this._sendButton.addEventListener('click', this._sendMessage);
-      this._inputField.addEventListener('keyup', (e) => {
-        if (e.key === 'Enter') {
-          this._sendMessage();
+
+    // Cache references to inner elements.
+    this._container = this.shadowRoot.querySelector('.chat-container');
+    this._header = this.shadowRoot.querySelector('.chat-header');
+    this._closeButton = this.shadowRoot.querySelector('.chat-close');
+    this._messagesContainer = this.shadowRoot.querySelector('.chat-messages');
+    this._inputField = this.shadowRoot.querySelector('.chat-input input');
+    this._sendButton = this.shadowRoot.querySelector('.chat-input button');
+
+    // Bind methods.
+    this._toggleChat = this._toggleChat.bind(this);
+    this._sendMessage = this._sendMessage.bind(this);
+  }
+
+  static get observedAttributes() {
+    return [
+      'header-text',
+      'send-button-text',
+      'placeholder',
+      'animation-duration',
+      'theme',
+      'opened',
+      'chat-width',
+      'chat-height',
+      'chat-bottom',
+      'chat-right'
+    ];
+  }
+
+  connectedCallback() {
+    //this._header.addEventListener('click', this._toggleChat);
+    this._closeButton.addEventListener('click', this._toggleChat);
+    this._sendButton.addEventListener('click', this._sendMessage);
+    this._inputField.addEventListener('keyup', (e) => {
+      if (e.key === 'Enter') {
+        this._sendMessage();
+      } else if (e.key === 'ArrowUp') {
+        // Listen for ArrowUp key press on the input field to update value from history.
+        const previousMessage = this.customHistory();
+        if (previousMessage) {
+          this._inputField.value = previousMessage;
         }
-      });
-      // Apply initial host styles for layout.
-      this._applyHostStyles();
-    }
-  
-    disconnectedCallback() {
-      this._header.removeEventListener('click', this._toggleChat);
-      this._closeButton.removeEventListener('click', this._toggleChat);
-      this._sendButton.removeEventListener('click', this._sendMessage);
-    }
-  
-    attributeChangedCallback(name, oldValue, newValue) {
-      if (oldValue === newValue) return;
-      switch (name) {
-        case 'header-text':
-          this._headerText = newValue;
-          this.shadowRoot.querySelector('.chat-header h3').textContent = newValue;
-          break;
-        case 'send-button-text':
-          this._sendButtonText = newValue;
-          this.shadowRoot.querySelector('.chat-input button').textContent = newValue;
-          break;
-        case 'placeholder':
-          this._placeholder = newValue;
-          this.shadowRoot.querySelector('.chat-input input').setAttribute('placeholder', newValue);
-          break;
-        case 'animation-duration':
-          this._animationDuration = newValue;
-          this._refreshStyles();
-          break;
-        case 'theme':
-          this._theme = newValue;
-          this._refreshStyles();
-          break;
-        case 'opened':
-          // If the attribute is present, set _isOpen to true; otherwise, false.
-          this._isOpen = newValue !== null;
-          this._updateOpenState();
-          break;
-        case 'chat-width':
-          this._chatWidth = newValue;
-          this.style.width = newValue;
-          break;
-        case 'chat-height':
-          this._chatHeight = newValue;
-          this.style.height = newValue;
-          break;
-        case 'chat-bottom':
-          this._chatBottom = newValue;
-          this.style.bottom = newValue;
-          break;
-        case 'chat-right':
-          this._chatRight = newValue;
-          this.style.right = newValue;
-          break;
       }
+    });
+    // Apply initial host styles for layout.
+    this._applyHostStyles();
+  }
+
+  disconnectedCallback() {
+    this._header.removeEventListener('click', this._toggleChat);
+    this._closeButton.removeEventListener('click', this._toggleChat);
+    this._sendButton.removeEventListener('click', this._sendMessage);
+  }
+
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (oldValue === newValue) return;
+    switch (name) {
+      case 'header-text':
+        this._headerText = newValue;
+        this.shadowRoot.querySelector('.chat-header h3').textContent = newValue;
+        break;
+      case 'send-button-text':
+        this._sendButtonText = newValue;
+        this.shadowRoot.querySelector('.chat-input button').textContent = newValue;
+        break;
+      case 'placeholder':
+        this._placeholder = newValue;
+        this.shadowRoot.querySelector('.chat-input input').setAttribute('placeholder', newValue);
+        break;
+      case 'animation-duration':
+        this._animationDuration = newValue;
+        this._refreshStyles();
+        break;
+      case 'theme':
+        this._theme = newValue;
+        this._refreshStyles();
+        break;
+      case 'opened':
+        // If the attribute is present, set _isOpen to true; otherwise, false.
+        this._isOpen = newValue !== null;
+        this._updateOpenState();
+        break;
+      case 'chat-width':
+        this._chatWidth = newValue;
+        this.style.width = newValue;
+        break;
+      case 'chat-height':
+        this._chatHeight = newValue;
+        this.style.height = newValue;
+        break;
+      case 'chat-bottom':
+        this._chatBottom = newValue;
+        this.style.bottom = newValue;
+        break;
+      case 'chat-right':
+        this._chatRight = newValue;
+        this.style.right = newValue;
+        break;
     }
-  
-    // Refresh the internal <style> block (used when animation duration or theme changes)
-    _refreshStyles() {
-      const styleEl = this.shadowRoot.querySelector('style');
-      styleEl.textContent = `
+  }
+
+  // Refresh the internal <style> block (used when animation duration or theme changes)
+  _refreshStyles() {
+    const styleEl = this.shadowRoot.querySelector('style');
+    styleEl.textContent = `
         :host {
           position: fixed;
           bottom: ${this._chatBottom};
@@ -363,75 +369,77 @@ class ChatWindow extends HTMLElement {
           }
         }
       `;
-    }
-  
-    // Apply layout styles from attributes to the host element.
-    _applyHostStyles() {
-      this.style.width = this._chatWidth;
-      if (this._chatHeight) this.style.height = this._chatHeight;
-      this.style.bottom = this._chatBottom;
-      this.style.right = this._chatRight;
-    }
-  
-    // Update the container’s class based on open/closed state.
-    _updateOpenState() {
-      if (this._isOpen) {
-        this._container.classList.remove('closed');
-      } else {
-        this._container.classList.add('closed');
-      }
-    }
-  
-    // Toggle open/closed state and update the "opened" attribute accordingly.
-    _toggleChat(e) {
-      // Prevent propagation if clicking the close button.
-      if (e.target === this._closeButton) e.stopPropagation();
-      this._isOpen = !this._isOpen;
-      this._updateOpenState();
-      // Reflect the state in the attribute.
-      if (this._isOpen) {
-        this.setAttribute('opened', '');
-        this.dispatchEvent(new CustomEvent('chat-opened'));
-      } else {
-        this.removeAttribute('opened');
-        this.dispatchEvent(new CustomEvent('chat-closed'));
-      }
-    }
-  
-    // Send a message from the user.
-    _sendMessage() {
-      const message = this._inputField.value.trim();
-      if (message) {
-        // Append the message as a "sent" bubble.
-        this._appendMessage(message, 'sent');
-        // Dispatch a custom event with the message wrapped in an object with role and content.
-        this.dispatchEvent(new CustomEvent('chat-message', { detail: { message: { role: 'user', content: message } } }));
-        // Clear the input.
-        this._inputField.value = '';
-      }
-    }
-  
-    // Internal method to append a message to the chat.
-    _appendMessage(message, type) {
-      const messageEl = document.createElement('div');
-      messageEl.className = `chat-message ${type}`;
-      if (typeof message === 'object') {
-        message = JSON.stringify(message);
-      }
-      messageEl.textContent = message;
-      this._messagesContainer.appendChild(messageEl);
-      // Scroll to the bottom.
-      this._messagesContainer.scrollTop = this._messagesContainer.scrollHeight;
-    }
-  
-    /**
-     * Public API: Allows external code to add a new message (for example, a response).
-     * @param {string} message - The message text.
-     * @param {string} type - Either "sent" or "received" (default: "received").
-     */
-    addMessage(message, type = 'received') {
-      this._appendMessage(message, type);
+  }
+
+  // Apply layout styles from attributes to the host element.
+  _applyHostStyles() {
+    this.style.width = this._chatWidth;
+    if (this._chatHeight) this.style.height = this._chatHeight;
+    this.style.bottom = this._chatBottom;
+    this.style.right = this._chatRight;
+  }
+
+  // Update the container’s class based on open/closed state.
+  _updateOpenState() {
+    if (this._isOpen) {
+      this._container.classList.remove('closed');
+    } else {
+      this._container.classList.add('closed');
     }
   }
-  
-  customElements.define('chat-window', ChatWindow);
+
+  // Toggle open/closed state and update the "opened" attribute accordingly.
+  _toggleChat(e) {
+    // Prevent propagation if clicking the close button.
+    if (e.target === this._closeButton) e.stopPropagation();
+    this._isOpen = !this._isOpen;
+    this._updateOpenState();
+    // Reflect the state in the attribute.
+    if (this._isOpen) {
+      this.setAttribute('opened', '');
+      this.dispatchEvent(new CustomEvent('chat-opened'));
+    } else {
+      this.removeAttribute('opened');
+      this.dispatchEvent(new CustomEvent('chat-closed'));
+    }
+  }
+
+
+
+  // Send a message from the user.
+  _sendMessage() {
+    const message = this._inputField.value.trim();
+    if (message) {
+      // Append the message as a "sent" bubble.
+      this._appendMessage(message, 'sent');
+      // Dispatch a custom event with the message wrapped in an object with role and content.
+      this.dispatchEvent(new CustomEvent('chat-message', { detail: { message: { role: 'user', content: message } } }));
+      // Clear the input.
+      this._inputField.value = '';
+    }
+  }
+
+  // Internal method to append a message to the chat.
+  _appendMessage(message, type) {
+    const messageEl = document.createElement('div');
+    messageEl.className = `chat-message ${type}`;
+    if (typeof message === 'object') {
+      message = JSON.stringify(message);
+    }
+    messageEl.textContent = message;
+    this._messagesContainer.appendChild(messageEl);
+    // Scroll to the bottom.
+    this._messagesContainer.scrollTop = this._messagesContainer.scrollHeight;
+  }
+
+  /**
+   * Public API: Allows external code to add a new message (for example, a response).
+   * @param {string} message - The message text.
+   * @param {string} type - Either "sent" or "received" (default: "received").
+   */
+  addMessage(message, type = 'received') {
+    this._appendMessage(message, type);
+  }
+}
+
+customElements.define('chat-window', ChatWindow);

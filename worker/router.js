@@ -31,26 +31,18 @@ class WorkerRouter {
             if (payload.content.startsWith('/config')) {
                 const [ , workerName, action, key, value] = payload.content.split(' ');
                 const targetWorkerRoute = this.routes.find((route) => route.name === workerName);
-                if (!targetWorkerRoute) {
-                    this.mainPort.postMessage({ type: 'error', name: 'Router', payload: { error: `Worker ${workerName} not found for config.` } });
-                    return;
-                }
-                if (action === 'get') {
-                    // Pass requestId for potential response correlation if needed by config handler
-                    targetWorkerRoute.port.postMessage({ type: 'get-config', name: 'Router', payload: { key }, requestId });
-                } else if (action === 'set') {
-                    const cacheWorker = this.routes.find((route) => route.name === "cache");
-                    // Pass requestId for potential response correlation
-                    targetWorkerRoute.port.postMessage({ type: 'set-config', name: 'Router', payload: {[key]: value }, requestId });
-                    if (cacheWorker) {
-                        // Pass requestId for potential response correlation
-                        cacheWorker.port.postMessage({ type: 'save-config', name: 'Router', payload: { workerName: workerName, config: {[key]: value} }, requestId });
-                    } else {
-                         console.warn("Router: Cache worker not found, cannot save config.");
-                    }
-                } else {
-                    this.mainPort.postMessage({ type: 'error', name: 'Router', payload: { error: `Invalid config action ${action}. Use 'get' or 'set'.` }, requestId });
-                }
+                targetWorkerRoute.port.postMessage({ type: `${action}-config`, name: 'Router', payload: {[key]: value }, requestId });
+                // if (!targetWorkerRoute) {
+                //     this.mainPort.postMessage({ type: 'error', name: 'Router', payload: { error: `Worker ${workerName} not found for config.` } });
+                //     return;
+                // }
+                // if (action === 'get') {
+                //     // Pass requestId for potential response correlation if needed by config handler
+                //     targetWorkerRoute.port.postMessage({ type: 'get-config', name: 'Router', payload: { key }, requestId });
+                // } else if (action === 'set') {
+                //     const cacheWorker = this.routes.find((route) => route.name === "cache");
+                //     // Pass requestId for potential response correlation
+                //     targetWorkerRoute.port.postMessage({ type: 'set-config', name: 'Router', payload: {[key]: value }, requestId });
             } else {
                 if (!payload || typeof payload !== 'object' || !payload.role || !payload.content) {
                     console.error(`Router: Invalid user message payload received from ${senderName || 'Unknown'}:`, payload);

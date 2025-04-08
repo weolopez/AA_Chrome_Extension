@@ -105,7 +105,29 @@ class BaseWorker {
     }
 
     // --- Connection and Message Handling ---
-
+    /**
+     * Extracts and validates OMF fields from the incoming messageEvent.
+     * @param {MessageEvent} messageEvent - The incoming message event.
+     * @returns {object|null} An object containing type, name, payload, and requestId if valid; otherwise, null.
+     */
+    parseMessageEvent(messageEvent) {
+        const messageData = messageEvent.data;
+        if (!messageData || typeof messageData !== 'object' || !messageData.type) {
+            console.error(`${this.name}: Received invalid message structure:`, messageData);
+            try {
+                this.postMessage({
+                    type: 'error',
+                    payload: { error: 'Invalid message structure received.' },
+                    requestId: messageData?.requestId
+                });
+            } catch (e) {
+                console.error("Error posting validation error", e);
+            }
+            return null;
+        }
+        const { type, name, payload, requestId } = messageData;
+        return { type, name, payload, requestId };
+    }
     /**
      * Handles the 'connect' event when a client connects to the SharedWorker.
      * Sets up the port and adds the main message listener.
@@ -117,26 +139,8 @@ class BaseWorker {
 
         // *** This is the message listener we suspect contains the error ***
         this.port.addEventListener('message', (messageEvent) => {
-            const messageData = messageEvent.data;
-
-            // Basic validation for OMF structure
-            if (!messageData || typeof messageData !== 'object' || !messageData.type) {
-                console.error(`${this.name}: Received invalid message structure:`, messageData);
-                // Use try-catch for postMessage just in case port is invalid during error
-                try {
-                    this.postMessage({
-                        type: 'error',
-                        payload: { error: 'Invalid message structure received.' },
-                        requestId: messageData?.requestId // Include requestId if available
-                    });
-                } catch (e) { console.error("Error posting validation error", e); }
-                return;
-            }
-
-            // Destructure OMF fields. 'requestId' contains the full current chain.
-            const { type, name: senderName, payload, requestId } = messageData;
-
-            console.log(`${this.name}: Received message - Type: ${type}, Sender: ${senderName || 'Unknown'}, RequestID: ${requestId || 'None'}`);
+            const { type, name, payload, requestId } = this.parseMessageEvent(messageEvent);
+            console.log(`${this.name}: Received message - Type: ${type}, Sender: ${name || 'Unknown'}, RequestID: ${requestId || 'None'}`);
 
             // Handle built-in configuration message types
             if (type === 'set-config') {
@@ -146,7 +150,7 @@ class BaseWorker {
                     // Respond with confirmation, passing back the original requestId
                     const wr = new WorkerRegistry()
                     wr.updateWorkerConfig(this.name, payload);
-                    this.postMessage({ type: 'response', payload: { status: 'config-updated', config: this.config }, requestId });
+                    // this.postMessage({ type: 'response', payload: { status: 'config-updated', config: this.config }, requestId });
                 } else {
                      this.postMessage({ type: 'error', payload: { error: 'Invalid payload for set-config.' }, requestId });
                 }
@@ -159,7 +163,7 @@ class BaseWorker {
                     responsePayload.config = { ...this.config }; // Send a copy
                 }
                 // Respond with config data, passing back the original requestId
-                this.postMessage({ type: 'response', payload: responsePayload, requestId });
+                this.postMessage({ type: 'response', payload: responsePayload.config, requestId });
             } else {
                 // For all other message types, pass the full OMF message data
                 // to the subclass's custom handler.
@@ -189,9 +193,9 @@ class BaseWorker {
      */
     handleCustomMessage(messageData) {
         // Destructure OMF fields including the full requestId chain
-        const { type, name: senderName, payload, requestId } = messageData;
+        const { type, name: name, payload, requestId } = messageData;
 
-        console.warn(`${this.name}: Unhandled message type '${type}' received from '${senderName || 'Unknown'}'. Payload:`, payload);
+        console.warn(`${this.name}: Unhandled message type '${type}' received from '${name || 'Unknown'}'. Payload:`, payload);
 
         // Use the OMF-compliant postMessage to send an error back to the sender via the established port
         this.postMessage({

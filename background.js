@@ -166,8 +166,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // --- Refactored Microsoft Login Handler ---
 // Takes 'interactive' boolean and sendResponse callback
 function handleMicrosoftLogin(isInteractive, sendResponse) {
-    const clientId = "9d230984-b6a4-426c-bf9a-a98ada5db082";
-    const tenantId = "common";
+    // const clientId = "9d230984-b6a4-426c-bf9a-a98ada5db082";
+    // const tenantId = "common";
+    const clientId = "f5df8be3-4473-4c28-b74d-bac0671b4dd8"
+    const tenantId = "e741d71c-c6b6-47b0-803c-0f3b32b07556";
     const scopes = ["openid", "profile", "email", "User.Read"];
     const redirectUri = `https://` + chrome.runtime.id + `.chromiumapp.org/`;
 
@@ -229,42 +231,66 @@ function handleMicrosoftLogin(isInteractive, sendResponse) {
                     code_verifier: codeVerifier
                 });
 
-                console.log("Exchanging code for token...");
-                fetch(tokenUrl, {
-                    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: tokenRequestBody.toString(),
-                })
-                .then(tokenResponse => {
+                (async () => {
+                  try {
+                    console.log("Exchanging code for token...");
+                    const tokenResponse = await fetch(tokenUrl, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                      body: tokenRequestBody.toString(),
+                    });
+
                     if (!tokenResponse.ok) {
-                        return tokenResponse.json().then(errorData => { throw new Error(`Token exchange failed (${tokenResponse.status}): ${errorData.error_description || JSON.stringify(errorData)}`); })
-                                           .catch(() => { throw new Error(`Token exchange failed (${tokenResponse.status})`); });
-                    } return tokenResponse.json();
-                })
-                .then(tokenData => {
+                      let errorData;
+                      try {
+                        errorData = await tokenResponse.json();
+                        throw new Error(`Token exchange failed (${tokenResponse.status}): ${errorData.error_description || JSON.stringify(errorData)}`);
+                      } catch {
+                        throw new Error(`Token exchange failed (${tokenResponse.status})`);
+                      }
+                    }
+
+                    const tokenData = await tokenResponse.json();
                     const accessToken = tokenData.access_token;
-                    if (!accessToken) { throw new Error("Access token missing in response."); }
+                    // Save the Microsoft access token for later use in the side panel via extension storage
+                    chrome.storage.local.set({ microsoftAccessToken: accessToken }, () => {
+                      console.log('Microsoft access token saved in extension storage.');
+                    });
+                    if (!accessToken) {
+                      throw new Error("Access token missing in response.");
+                    }
                     console.log("Access Token obtained.");
                     userInfo = null; // Clear cache before fetching new info
 
                     console.log("Fetching MS Graph user info...");
-                    return fetch("https://graph.microsoft.com/v1.0/me", { headers: { Authorization: `Bearer ${accessToken}` } });
-                })
-                .then(graphResponse => {
+                    const graphResponse = await fetch("https://graph.microsoft.com/v1.0/me", {
+                      headers: { Authorization: `Bearer ${accessToken}` }
+                    });
                     if (!graphResponse.ok) {
-                        return graphResponse.json().then(errorData => { throw new Error(`Graph API failed (${graphResponse.status}): ${errorData.error?.message || JSON.stringify(errorData)}`); })
-                                           .catch(() => { throw new Error(`Graph API failed (${graphResponse.status})`); });
-                    } return graphResponse.json();
-                })
-                .then(graphUserInfo => {
+                      let errorData;
+                      try {
+                        errorData = await graphResponse.json();
+                        throw new Error(`Graph API failed (${graphResponse.status}): ${errorData.error?.message || JSON.stringify(errorData)}`);
+                      } catch {
+                        throw new Error(`Graph API failed (${graphResponse.status})`);
+                      }
+                    }
+
+                    const graphUserInfo = await graphResponse.json();
                     console.log("MS Graph User Info obtained:", graphUserInfo);
                     // Update cache
-                    userInfo = { provider: "microsoft", name: graphUserInfo.displayName, email: graphUserInfo.mail || graphUserInfo.userPrincipalName, picture: null };
+                    userInfo = {
+                      provider: "microsoft",
+                      name: graphUserInfo.displayName,
+                      email: graphUserInfo.mail || graphUserInfo.userPrincipalName,
+                      picture: null
+                    };
                     sendResponse({ success: true, data: userInfo });
-                })
-                .catch(error => {
+                  } catch (error) {
                     console.error("Error in token exchange or Graph API call:", error);
                     sendResponse({ success: false, error: `MS login process failed: ${error.message}` });
-                });
+                  }
+                })();
             } // End launchWebAuthFlow callback
         ); // End launchWebAuthFlow call
     }).catch(pkceError => {

@@ -1,11 +1,12 @@
 // Function to update the UI with user info
 function updateUserInfoDisplay(userInfoData) {
     const userInfoDisplay = document.getElementById('user-info-display');
-    const loginButtonsDiv = document.getElementById('login-buttons'); // Get the container div for buttons
+    const loginButtonsDiv = document.getElementById('login-buttons'); // Container for login buttons
+    const logoutButton = document.getElementById('logout-button'); // New logout button element
 
     // Ensure the main container is visible (its visibility is now controlled by CSS z-index)
     const userInfoContainer = document.getElementById('user-info-container');
-     if (userInfoContainer) userInfoContainer.style.display = 'flex'; // Ensure header container itself is visible
+    if (userInfoContainer) userInfoContainer.style.display = 'flex'; // Ensure header container itself is visible
 
     if (!userInfoDisplay || !loginButtonsDiv) {
         console.error("UI elements for user info display or login buttons not found.");
@@ -13,69 +14,94 @@ function updateUserInfoDisplay(userInfoData) {
     }
 
     if (userInfoData && userInfoData.name) {
-        // Logged IN state: Update text and hide only the login buttons div
+        // Logged IN state: Update text and show logout button while hiding login buttons
         const provider = userInfoData.provider === 'microsoft' ? 'Microsoft' : 'Google';
         userInfoDisplay.textContent = `Welcome, ${userInfoData.name}! (via ${provider})`;
-        loginButtonsDiv.style.display = 'none'; // Hide the buttons
-        console.log("User logged in, hiding login buttons.");
+        loginButtonsDiv.style.display = 'none'; // Hide the login buttons
+        
+        if (logoutButton) {
+            logoutButton.style.display = 'flex'; // Show the logout button
+        }
+        console.log("User logged in, showing logout button.");
     } else {
-        // Logged OUT state: Update text and show the login buttons div
+        // Logged OUT state: Update text and show login buttons, hide logout button
         userInfoDisplay.textContent = 'Please log in.';
-        loginButtonsDiv.style.display = 'flex'; // Show the buttons
-        console.log("User logged out, showing login buttons.");
+        loginButtonsDiv.style.display = 'flex'; // Show the login buttons
+        
+        if (logoutButton) {
+            logoutButton.style.display = 'none'; // Hide the logout button
+        }
+        console.log("User logged out, hiding logout button.");
     }
 }
-
-// Function to request Google user info and update UI
+function requestLogout() {
+    console.log("Logout requested.");
+    chrome.runtime.sendMessage({ type: 'logout' }, (response) => {
+        if (chrome.runtime.lastError) {
+            console.error("Logout error:", chrome.runtime.lastError.message);
+        }
+        // Remove saved user info
+        chrome.storage.local.remove('userInfo', () => {
+            console.log("User info removed from storage");
+        });
+        updateUserInfoDisplay(null);
+    });
+}
 function requestGoogleUserInfo() {
-    console.log("requestGoogleUserInfo function called."); // Log function entry
+    console.log("requestGoogleUserInfo function called.");
     const userInfoDisplay = document.getElementById('user-info-display');
-    if (!userInfoDisplay) return; // Guard clause
+    if (!userInfoDisplay) return;
 
-    userInfoDisplay.textContent = 'Checking Google login...'; // Initial status
+    userInfoDisplay.textContent = 'Checking Google login...';
 
-    chrome.runtime.sendMessage({ type: 'getUserInfo' }, (response) => { // Google login uses getUserInfo
+    chrome.runtime.sendMessage({ type: 'getUserInfo' }, (response) => {
         if (chrome.runtime.lastError) {
             console.error("Error sending/receiving Google user info:", chrome.runtime.lastError.message);
-            updateUserInfoDisplay(null); // Show not logged in state
+            updateUserInfoDisplay(null);
             return;
         }
 
         if (response && response.success && response.data) {
             console.log("Received Google user info:", response.data);
-            updateUserInfoDisplay({ ...response.data, provider: 'google' }); // Update UI
+            // Save the user info (including token) in chrome storage
+            chrome.storage.local.set({ userInfo: { ...response.data, provider: 'google' } }, () => {
+                console.log("Google user info saved");
+            });
+            updateUserInfoDisplay({ ...response.data, provider: 'google' });
         } else {
-            console.log("Failed to get Google user info (might not be logged in):", response ? response.error : 'No response');
-            updateUserInfoDisplay(null); // Show not logged in state
+            console.log("Failed to get Google user info:", response ? response.error : 'No response');
+            updateUserInfoDisplay(null);
         }
     });
 }
 
-// Function to initiate Microsoft login
 function requestMicrosoftLogin() {
-    console.log("requestMicrosoftLogin function called."); // Log function entry
+    console.log("requestMicrosoftLogin function called.");
     const userInfoDisplay = document.getElementById('user-info-display');
     if (userInfoDisplay) userInfoDisplay.textContent = 'Initiating Microsoft login...';
 
     chrome.runtime.sendMessage({ type: 'microsoftLogin' }, (response) => {
         if (chrome.runtime.lastError) {
             console.error("Error sending/receiving Microsoft login:", chrome.runtime.lastError.message);
-            updateUserInfoDisplay(null); // Show not logged in state
-             alert(`Microsoft Login Error: ${chrome.runtime.lastError.message}`); // Notify user
+            updateUserInfoDisplay(null);
+            alert(`Microsoft Login Error: ${chrome.runtime.lastError.message}`);
             return;
         }
 
         if (response && response.success && response.data) {
             console.log("Received Microsoft user info:", response.data);
-            updateUserInfoDisplay(response.data); // Update UI (data already includes provider: 'microsoft')
+            // Save the user info (including token) in chrome storage
+            chrome.storage.local.set({ userInfo: response.data }, () => {
+                console.log("Microsoft user info saved");
+            });
+            updateUserInfoDisplay(response.data);
         } else {
             console.error("Microsoft login failed:", response ? response.error : 'No response');
-            updateUserInfoDisplay(null); // Show not logged in state
-            alert(`Microsoft Login Failed: ${response ? response.error : 'Unknown error'}`); // Notify user
+            updateUserInfoDisplay(null);
+            alert(`Microsoft Login Failed: ${response ? response.error : 'Unknown error'}`);
         }
     });
 }
-
 // Gemini function 'callGemini' removed.
 
 
@@ -105,38 +131,44 @@ function attemptSilentLogins() {
     });
 }
 
-
-// --- Initial Setup & Event Listeners ---
-
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOMContentLoaded event fired.");
 
     // Find buttons
     const msLoginButton = document.getElementById('microsoft-login-button');
     const googleLoginButton = document.getElementById('google-login-button');
+    const logoutButton = document.getElementById('logout-button');
 
-    // Attach INTERACTIVE listeners
-    console.log("Attempting to find and attach INTERACTIVE listeners...");
+    // Attach INTERACTIVE listeners for login buttons
     if (msLoginButton) {
         console.log("Microsoft login button found.");
-        msLoginButton.addEventListener('click', requestMicrosoftLogin); // Calls INTERACTIVE MS login
+        msLoginButton.addEventListener('click', requestMicrosoftLogin);
         console.log("Added INTERACTIVE click listener to Microsoft button.");
     } else {
         console.error("Microsoft login button not found.");
     }
     if (googleLoginButton) {
         console.log("Google login button found.");
-        googleLoginButton.addEventListener('click', requestGoogleUserInfo); // Calls INTERACTIVE Google login
+        googleLoginButton.addEventListener('click', requestGoogleUserInfo);
         console.log("Added INTERACTIVE click listener to Google button.");
     } else {
         console.error("Google login button not found.");
     }
+    if (logoutButton) {
+        logoutButton.addEventListener('click', requestLogout);
+    }
 
-    // Start the silent login flow
-    attemptSilentLogins();
-
-}); // End of DOMContentLoaded listener
-
+    // Check if user info is already saved
+    chrome.storage.local.get('userInfo', (result) => {
+        if (result.userInfo) {
+            console.log("Loaded saved user info:", result.userInfo);
+            updateUserInfoDisplay(result.userInfo);
+        } else {
+            // If no saved info, try silent login flows
+            attemptSilentLogins();
+        }
+    });
+});
 
 // import { sendUserMessage } from './js/userMessageHandler.js';
 import { WorkerRegistry } from './js/workerRegistry.js';
@@ -285,6 +317,7 @@ document.addEventListener('agent-message', (e) => {
 
 // Original chat listener using WorkerRegistry
 chat.addEventListener('chat-message', async (e) => { // Make listener async for addWorker call
+    chat.customHistory(e.detail.message)
     console.log('User sent message:', e.detail.message);
     const message = e.detail.message;
     const userRequestId = `user-${crypto.randomUUID()}`;
@@ -324,7 +357,13 @@ chat.addEventListener('chat-message', async (e) => { // Make listener async for 
                 chat.addMessage({ content: `Error adding worker '${workerName}': ${error.message}` }, "error");
             }
         } else if (command === '/config') {
-           
+            if (args[0] === 'save') {
+                worker_registry.saveConfig();
+                return
+            } else if (args[0] === 'restore') {
+                worker_registry.restoreConfig();
+                return;
+            }
             // Construct the OMF message
             const omfMessage = {
                 type: 'user-message',
@@ -335,7 +374,6 @@ chat.addEventListener('chat-message', async (e) => { // Make listener async for 
 
             // Send the full OMF message to the WorkerRegistry
             worker_registry.sendUserMessage(omfMessage); 
-
         } else {
             // Handle unknown commands or incorrect usage
             console.warn(`Unknown or invalid command: ${messageContent}`);
@@ -366,3 +404,18 @@ chat.addEventListener('chat-message', async (e) => { // Make listener async for 
 });
 
 
+var _history = JSON.parse(localStorage.getItem('slidingPanelHistory')) || [];
+var _history_index = 0;
+chat.customHistory = function(value){
+  if (value) {
+    if (!_history.includes(value.content)) {
+        _history.push(value.content);
+        localStorage.setItem('slidingPanelHistory', JSON.stringify(_history));
+    }
+  } else {
+    if (_history.length > 0) {
+      _history_index = (_history_index + 1) % _history.length;
+      return _history[_history_index];
+    }
+  }
+}

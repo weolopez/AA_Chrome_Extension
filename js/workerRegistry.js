@@ -115,7 +115,76 @@ export class WorkerRegistry {
             console.error(`Failed to update config for worker ${workerName}:`, request.error);
         };
     }
+    async getConfig() {
+        //gets the whole configuration table and return it as a json object
+        const db = await this.initDB();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(this.storeName, 'readonly');
+            const store = transaction.objectStore(this.storeName);
+            const request = store.getAll();
 
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async saveConfig() {
+        try {
+            // Retrieve the full configuration using WorkerRegistry
+            const configData = await this.getConfig();
+            const json = JSON.stringify(configData, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'db_export.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            console.log(`${this.dbName}: Configuration saved.`);
+        } catch (err) {
+            console.error(`${this.dbName}: Error saving configuration:`, err);
+        }
+    }
+    async restoreConfig() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'application/json';
+
+        input.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const jsonData = JSON.parse(e.target.result);
+                        const db = await this.initDB();
+                        const transaction = db.transaction(this.storeName, 'readwrite');
+                        const store = transaction.objectStore(this.storeName);
+                        // Clear existing configuration
+                        store.clear();
+                        // Restore each configuration record
+                        jsonData.forEach(record => {
+                            store.put(record);
+                        });
+                        transaction.oncomplete = () => {
+                            console.log(`${this.dbName}: Configuration restored.`);
+                        };
+                        transaction.onerror = (err) => {
+                            console.error(`${this.dbName}: Error restoring configuration:`, err);
+                        };
+                    } catch (err) {
+                        console.error(`${this.dbName}: Error processing file:`, err);
+                    }
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        // Trigger the file upload dialog
+        input.click();
+    }
     // Retrieve all workers from the registry
     async getAllWorkers() {
         const db = await this.initDB();
