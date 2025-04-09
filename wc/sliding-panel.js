@@ -32,7 +32,7 @@ class SlidingPanel extends HTMLElement {
       this._setInitialTransform();
   
       // Bind the keydown handler.
-      this._onKeyDown = this._onKeyDown.bind(this);
+      // this._onKeyDown = this._onKeyDown.bind(this);
     }
   
     // List of attributes to observe.
@@ -136,14 +136,9 @@ class SlidingPanel extends HTMLElement {
         this.panel.style.transform = this._hiddenTransform;
       }
     }
-  
-    // Listen for Alt+E key presses to toggle the panel.
-    _onKeyDown(e) {
-      if (e.key === 'ArrowUp') {
-        this.toggle();
-      }
-    }
-  
+
+    
+    
     // Toggle panel visibility.
     toggle() {
       if (this._isVisible) {

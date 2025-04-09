@@ -1,0 +1,24 @@
+{
+  "name": "aa_chrome_extension",
+  "version": "1.0.0",
+  "description": "This example demonstrates how to create a simple \"Hello World\" Chrome Extension. For more details, visit the [official tutorial](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world).",
+  "main": "background.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/weolopez/AA_Chrome_Extension.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/weolopez/AA_Chrome_Extension/issues"
+  },
+  "homepage": "https://github.com/weolopez/AA_Chrome_Extension#readme",
+  "dependencies": {
+    "@xenova/transformers": "^2.17.2",
+    "idb": "^8.0.2"
+  }
+}

@@ -132,7 +132,7 @@ self.addEventListener('connect', (event) => {
         payload.user = 'MCP Agent';
         payload.role = 'mcp';
       }
-      port.postMessage({ type: 'worker-message', payload });
+      this.postMessage({ type: 'worker-message', payload });
     });
   });
 
