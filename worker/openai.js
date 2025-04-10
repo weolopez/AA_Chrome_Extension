@@ -22,25 +22,11 @@ class OpenAIWorker extends BaseWorker {
      */
     async handleCustomMessage(messageData) {
         // 'requestId' is the full chain received (e.g., "user-abc:task-qna1:task-oai1")
-        const { type, name: senderName, payload, requestId } = messageData;
+        const { type, name: senderName, payload, requestId } = messageData.data;
 
-        // This worker now only handles 'generate-prompt' requests directly
-        if (type === 'generate-prompt') {
-            // The payload should be an OMF Chat Message { role: 'user', content: 'full prompt' }
             const promptMessage = payload;
 
             console.log(`${this.name}: Received '${type}' from '${senderName || 'Unknown'}'. ReqID: ${requestId || 'None'}`);
-
-            // Validate configuration
-            if (!this.config.endpoint || !this.config.apiKey || !this.config.model) {
-                this.postMessage({ type: 'error', requestId, payload: { error: 'OpenAI Worker not configured. Please set endpoint, apiKey, and model.' } });
-                return;
-            }
-            // Validate incoming payload
-            if (!promptMessage || promptMessage.role !== 'user' || !promptMessage.content) {
-                 this.postMessage({ type: 'error', requestId, payload: { error: 'Invalid payload for generate-prompt. Expected { role: "user", content: "..." }.' } });
-                 return;
-            }
 
             try {
                 // Prepare API request body - assumes the API takes a list of messages
@@ -92,10 +78,7 @@ class OpenAIWorker extends BaseWorker {
                 this.postMessage({ type: 'error', requestId, payload: { error: `Failed to generate response: ${error.message}` } });
             }
 
-        } else {
-            // If it's not a type this worker handles, let BaseWorker deal with it
-            super.handleCustomMessage(messageData);
-        }
+            // super.handleCustomMessage(messageData);
     }
 }
 

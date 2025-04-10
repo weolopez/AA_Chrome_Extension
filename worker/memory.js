@@ -79,7 +79,7 @@ class MemoryWorker extends BaseWorker {
         const command = type === 'command' ? payload?.command : type;
 
         console.log(`${this.name}: Received command '${command}' from '${senderName || 'Unknown'}'. ReqID: ${requestId || 'None'}. Payload:`, payload);
-
+return
         // Ensure initialization is complete
         if (!this.isInitialized) {
             // If initialization failed previously, report error
@@ -109,50 +109,41 @@ class MemoryWorker extends BaseWorker {
 
         // Process memory-specific commands
         try {
-            let result;
-            switch (command) {
-                case 'addMessage':
-                    // Assuming payload contains { command: 'addMessage', data: { role: 'user', content: '...' } }
-                    const messageToAdd = payload?.data;
-                    if (messageToAdd && messageToAdd.role && messageToAdd.content) {
-                        result = await this.memoryManager.addMessage(messageToAdd);
-                        // For addMessage, the response might just be confirmation
-                        result = { status: 'Message added', added: result }; // Example confirmation payload
-                    } else {
-                        throw new Error('Invalid payload structure for addMessage command.');
-                    }
-                    break;
-                case 'getRecentMessages':
+             let result;
+             const messageToAdd = payload?.data;
+             if (messageToAdd && messageToAdd.role && messageToAdd.content) {
+                result = await this.memoryManager.addMessage(messageToAdd);
+                // For addMessage, the response might just be confirmation
+                result = { status: 'Message added', added: result }; // Example confirmation payload
+            } else {
+                throw new Error('Invalid payload structure for addMessage command.');
+            }
+              
+             //   case 'getRecentMessages':
                     // Assuming payload might contain { limit: N }
-                    result = this.memoryManager.getRecentMessages(payload?.limit);
-                    break;
-                case 'getRelevantMemories':
+                    // result = this.memoryManager.getRecentMessages(payload?.limit);
+                    // break;
+                // case 'getRelevantMemories':
                     // Assuming payload contains { query: '...', limit: N }
-                    if (payload && payload.query) {
-                        result = await this.memoryManager.getRelevantMemories(payload.query, payload.limit);
-                    } else {
-                        throw new Error('Invalid payload for getRelevantMemories command.');
-                    }
-                    break;
-                case 'buildContext':
+                    // if (payload && payload.query) {
+                        // result = await this.memoryManager.getRelevantMemories(payload.query, payload.limit);
+                    // } else {
+                        // throw new Error('Invalid payload for getRelevantMemories command.');
+                    // }
+                    // break;
+                // case 'buildContext':
                     // Assuming payload contains { currentMessage: '...', options: {...} }
-                    if (payload && payload.currentMessage) {
-                         result = await this.memoryManager.buildContext(payload.currentMessage, payload.options);
-                    } else {
-                        throw new Error('Invalid payload for buildContext command.');
-                    }
-                    break;
-                case 'clearMemory':
-                    result = await this.memoryManager.clearMemory();
-                    break;
-                default:
+                    // if (payload && payload.currentMessage) {
+                        //  result = await this.memoryManager.buildContext(payload.currentMessage, payload.options);
+                    // } else {
+                        // throw new Error('Invalid payload for buildContext command.');
+                    // }
+                // case 'clearMemory':
+                    // result = await this.memoryManager.clearMemory();
+                    // break;
+                // default:
                     // If the command wasn't handled, maybe let the base class try?
                     // Or just report unknown command here.
-                    console.warn(`${this.name}: Unknown command received: ${command}`);
-                    this.postMessage({ type: 'error', requestId, payload: { error: `Unknown command: ${command}` } });
-                    return; // Exit early for unknown commands
-            }
-
             // Send result back
             // Send result back using the inherited postMessage.
             // Crucially, include the *received requestId* chain to allow the router

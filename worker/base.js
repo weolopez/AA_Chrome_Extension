@@ -165,18 +165,7 @@ class BaseWorker {
                 // Respond with config data, passing back the original requestId
                 this.postMessage({ type: 'response', payload: responsePayload.config, requestId });
             } else {
-                // For all other message types, pass the full OMF message data
-                // to the subclass's custom handler.
-                // Wrap in try-catch in case handleCustomMessage throws synchronously
-                try {
-                    this.handleCustomMessage(messageData); // Pass the full data object
-                } catch(err) {
-                     console.error(`${this.name}: Error executing handleCustomMessage for type ${type}:`, err);
-                     // Attempt to send error back
-                     try {
-                         this.postMessage({ type: 'error', payload: { error: `Error handling message type ${type}: ${err.message}` }, requestId });
-                     } catch (e) { console.error("Error posting handleCustomMessage error", e); }
-                }
+                this.handleCustomMessage(messageEvent)
             }
         });
 
