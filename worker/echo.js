@@ -14,7 +14,7 @@ export class EchoWorker extends BaseWorker {
         handleCustomMessage(messageData) {
             // Destructure OMF fields
             // 'requestId' contains the full request ID chain received.
-            const { type, name, payload, requestId } = messageData;
+            const { type, name, payload, requestId } = messageData.data;
 
             // EchoWorker specifically handles 'user-message' type for echoing
             // Or potentially a specific command type like 'echo-request'

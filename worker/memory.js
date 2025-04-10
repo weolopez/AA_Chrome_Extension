@@ -53,7 +53,7 @@ class MemoryWorker extends BaseWorker {
     async handleCustomMessage(messageData) {
         // Destructure OMF fields from the message data
         // 'requestId' contains the full request ID chain (e.g., "user-abc" or "user-abc:task-oai1")
-        const { type, name, payload, requestId } = messageData;
+        const { type, name, payload, requestId } = messageData.data;
 
         // Determine the command, potentially embedded in the payload
         // (Adjust based on how the router sends commands, e.g., if type='command')
@@ -90,7 +90,7 @@ class MemoryWorker extends BaseWorker {
         // Process memory-specific commands
         try {
              let result;
-             const messageToAdd = payload?.data;
+             const messageToAdd = payload;
              if (messageToAdd && messageToAdd.role && messageToAdd.content) {
                 result = await this.memoryManager.addMessage(messageToAdd);
                 // For addMessage, the response might just be confirmation
@@ -128,7 +128,7 @@ class MemoryWorker extends BaseWorker {
             // Send result back using the inherited postMessage.
             // Crucially, include the *received requestId* chain to allow the router
             // or original requester to correlate the response.
-            this.postMessage({ type: 'response', requestId, payload: result });
+            // this.postMessage({ type: 'response', requestId, payload: result });
 
         } catch (error) {
             console.error(`${this.name}: Error processing command ${command}:`, error);

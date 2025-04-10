@@ -31,7 +31,7 @@ class WorkerRouter {
                 this.openAIWorker.port.postMessage({ type: 'user-message', name, payload: payload, requestId });
                 this.memoryWorker.port.postMessage({ type: 'remember', name, payload: payload, requestId });
             }
-        } else if (type === 'response' || type === 'result' || type === 'error' || type === 'status') {
+        } else if (type === 'response' || type === 'result') {
              console.log(`Router: Relaying '${type}' message from '${name || 'Unknown'}' (requestId: ${requestId || 'none'}) to main UI.`);
              this.mainPort.postMessage({ type: 'agent-message', name, payload: payload, requestId: requestId });
              this.memoryWorker.port.postMessage({ type: 'remember', name, payload: payload, requestId });
