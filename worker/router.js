@@ -5,11 +5,11 @@ class WorkerRouter {
     }
 
     handleMessage(messageEvent) {
-        const { type, name: senderName, payload, requestId, command, error } = messageEvent.data;
+        const { type, name, payload, requestId, command, error } = messageEvent.data;
 
-        console.log(`Router: Received message - Type: ${type}, Sender: ${senderName || 'Unknown'}, RequestID: ${requestId || 'None'}`);
+        console.log(`Router: Received message - Type: ${type}, Sender: ${name || 'Unknown'}, RequestID: ${requestId || 'None'}`);
         if (type === 'register') {
-            console.log(`Router: Registering worker: ${payload.name} from sender: ${senderName || 'Unknown'}`);
+            console.log(`Router: Registering worker: ${payload.name} from sender: ${name || 'Unknown'}`);
             payload.port = messageEvent.ports[0]; // Used only during registration
             payload.port.start();
             payload.port.addEventListener('message', (event) => this.handleMessage(event));
@@ -21,24 +21,24 @@ class WorkerRouter {
             if (payload.name === 'memory') this.memoryWorker = payload;
             else if (payload.name === 'openai') this.openAIWorker = payload;
         } else if (type === 'user-message') {
-            console.log(`Router: Received user message from ${senderName || 'Unknown'}:`, payload);
+            console.log(`Router: Received user message from ${name || 'Unknown'}:`, payload);
 
             if (payload.content.startsWith('/config')) {
                 const [ , workerName, action, key, value] = payload.content.split(' ');
                 const targetWorkerRoute = this.routes.find((route) => route.name === workerName);
                 targetWorkerRoute.port.postMessage({ type: `${action}-config`, name: 'Router', payload: {[key]: value }, requestId });
             } else {
-                this.openAIWorker.port.postMessage({ type: 'user-message', name: senderName, payload: payload, requestId });
-                this.memoryWorker.port.postMessage({ type: 'remember', name: senderName, payload: payload, requestId });
+                this.openAIWorker.port.postMessage({ type: 'user-message', name, payload: payload, requestId });
+                this.memoryWorker.port.postMessage({ type: 'remember', name, payload: payload, requestId });
             }
         } else if (type === 'response' || type === 'result' || type === 'error' || type === 'status') {
-             console.log(`Router: Relaying '${type}' message from '${senderName || 'Unknown'}' (requestId: ${requestId || 'none'}) to main UI.`);
-             this.mainPort.postMessage({ type: 'agent-message', name: senderName, payload: payload, requestId: requestId });
-             this.memoryWorker.port.postMessage({ type: 'remember', name: senderName, payload: payload, requestId });
+             console.log(`Router: Relaying '${type}' message from '${name || 'Unknown'}' (requestId: ${requestId || 'none'}) to main UI.`);
+             this.mainPort.postMessage({ type: 'agent-message', name, payload: payload, requestId: requestId });
+             this.memoryWorker.port.postMessage({ type: 'remember', name, payload: payload, requestId });
         } else if (type === 'connect') { // Should not happen via message listener
             console.warn('Router: Received unexpected "connect" message via listener.');
         } else {
-            console.warn(`Router: Unknown message type '${type}' received from '${senderName || 'Unknown'}'. Data:`, messageData);
+            console.warn(`Router: Unknown message type '${type}' received from '${name || 'Unknown'}'. Data:`, messageData);
         }
     }
 } // End of WorkerRouter class

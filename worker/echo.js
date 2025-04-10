@@ -14,12 +14,12 @@ export class EchoWorker extends BaseWorker {
         handleCustomMessage(messageData) {
             // Destructure OMF fields
             // 'requestId' contains the full request ID chain received.
-            const { type, name: senderName, payload, requestId } = messageData;
+            const { type, name, payload, requestId } = messageData;
 
             // EchoWorker specifically handles 'user-message' type for echoing
             // Or potentially a specific command type like 'echo-request'
             if (type === 'user-message' && payload?.content) {
-                console.log(`${this.name}: Received user-message from '${senderName || 'Unknown'}' to echo. ReqID: ${requestId || 'None'}`);
+                console.log(`${this.name}: Received user-message from '${name || 'Unknown'}' to echo. ReqID: ${requestId || 'None'}`);
 
                 // Replace placeholders in the configured echo format
                 let content = this.config.content // Use configured format string
@@ -29,7 +29,7 @@ export class EchoWorker extends BaseWorker {
 
                 const responsePayload = {
                     // Include relevant info in the response payload
-                    originalSender: senderName,
+                    originalSender,
                     originalContent: payload.content,
                     echoedContent: content,
                     role: this.config.role // Echo worker's role

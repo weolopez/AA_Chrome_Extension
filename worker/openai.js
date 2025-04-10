@@ -22,11 +22,11 @@ class OpenAIWorker extends BaseWorker {
      */
     async handleCustomMessage(messageData) {
         // 'requestId' is the full chain received (e.g., "user-abc:task-qna1:task-oai1")
-        const { type, name: senderName, payload, requestId } = messageData.data;
+        const { type, name, payload, requestId } = messageData.data;
 
             const promptMessage = payload;
 
-            console.log(`${this.name}: Received '${type}' from '${senderName || 'Unknown'}'. ReqID: ${requestId || 'None'}`);
+            console.log(`${this.name}: Received '${type}' from '${name || 'Unknown'}'. ReqID: ${requestId || 'None'}`);
 
             try {
                 // Prepare API request body - assumes the API takes a list of messages

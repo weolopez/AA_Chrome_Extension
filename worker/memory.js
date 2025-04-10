@@ -21,9 +21,6 @@ class MemoryWorker extends BaseWorker {
         console.log(`${this.name}: New connection established.`);
         // Call super.onConnect FIRST to set up this.port and basic listeners (like config)
         super.onConnect(event);
-
-        // Now that this.port is set by super.onConnect, inform the client about status
-        this._sendStatus(this.port);
     }
 
     // Private initialization method
@@ -51,35 +48,18 @@ class MemoryWorker extends BaseWorker {
         return this.initializationPromise;
     }
 
-    // Send initialization status to a connecting port
-    _sendStatus(port) {
-         if (this.isInitialized) {
-             port.postMessage({ type: 'status', payload: 'ready' });
-         } else if (this.initializationError) {
-             port.postMessage({ type: 'status', payload: 'error', error: this.initializationError.message });
-         } else {
-             // If initialization is still in progress, wait and then send status
-             this.initializationPromise.then(() => {
-                 port.postMessage({ type: 'status', payload: 'ready' });
-             }).catch(err => {
-                 port.postMessage({ type: 'status', payload: 'error', error: err.message });
-             });
-         }
-    }
-
     // Override BaseWorker's handleCustomMessage
     // Receives the full OMF message data object
     async handleCustomMessage(messageData) {
         // Destructure OMF fields from the message data
         // 'requestId' contains the full request ID chain (e.g., "user-abc" or "user-abc:task-oai1")
-        const { type, name: senderName, payload, requestId } = messageData;
+        const { type, name, payload, requestId } = messageData;
 
         // Determine the command, potentially embedded in the payload
         // (Adjust based on how the router sends commands, e.g., if type='command')
         const command = type === 'command' ? payload?.command : type;
 
-        console.log(`${this.name}: Received command '${command}' from '${senderName || 'Unknown'}'. ReqID: ${requestId || 'None'}. Payload:`, payload);
-return
+        console.log(`${this.name}: Received command '${command}' from '${name || 'Unknown'}'. ReqID: ${requestId || 'None'}. Payload:`, payload);
         // Ensure initialization is complete
         if (!this.isInitialized) {
             // If initialization failed previously, report error
