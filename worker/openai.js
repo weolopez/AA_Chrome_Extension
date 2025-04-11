@@ -73,7 +73,10 @@ class OpenAIWorker extends BaseWorker {
                 console.log(`${this.name}: Sent assistant response. ReqID: ${requestId}`);
 
             } catch (error) {
-                console.error(`${this.name}: Error processing '${type}' (ReqID: ${requestId}):`, error);
+                if (this.config.apiKey === "") error.message = "API key is missing. Please set the API key in the worker configuration.";
+                else if (this.config.endpoint === "") error.message = "API endpoint is missing. Please set the endpoint in the worker configuration.";
+                else if (this.config.model === "") error.message = "Model name is missing. Please set the model in the worker configuration.";
+                console.error(`${this.name}: Error processing '${type}' (ReqID: ${requestId}):`, error.message);
                 // Send error back using the received requestId
                 this.postMessage({ type: 'error', requestId, payload: { error: `Failed to generate response: ${error.message}` } });
             }
